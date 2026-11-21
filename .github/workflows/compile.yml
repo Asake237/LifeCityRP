@@ -13,22 +13,31 @@ jobs:
       - name: Recuperer le code du depot
         uses: actions/checkout@v4
 
+      - name: Installer bibliotheques 32-bit pour pawncc
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update -y
+          sudo apt-get install -y curl tar libc6:i386 libstdc++6:i386
+
       - name: Telecharger le compilateur et includes SA-MP
         run: |
           mkdir -p /tmp/samp_sdk
           cd /tmp/samp_sdk
-          wget -q https://files.sa-mp.com/samp037svr_R2-1.tar.gz
-          tar -xzf samp037svr_R2-1.tar.gz
+          curl -fsSL --retry 3 "https://files.sa-mp.com/samp037svr_R2-1.tar.gz" -o samp037svr.tar.gz \
+            || curl -fsSL --retry 3 "https://github.com/AmyrAhmady/samp-server-0.3.7-R2-1-linux/raw/master/samp037svr_R2-1.tar.gz" -o samp037svr.tar.gz \
+            || curl -fsSL --retry 3 "https://assets.open.mp/samp-server/samp037svr_R2-1.tar.gz" -o samp037svr.tar.gz
+          ls -lh samp037svr.tar.gz
+          tar -xzf samp037svr.tar.gz
           chmod +x /tmp/samp_sdk/samp03/pawno/pawncc
 
       - name: Compiler LifeCity.pwn en LifeCity.amx
         run: |
-          cd gamemodes
-          /tmp/samp_sdk/samp03/pawno/pawncc LifeCity.pwn \
+          ls -la gamemodes/
+          /tmp/samp_sdk/samp03/pawno/pawncc gamemodes/LifeCity.pwn \
             -i/tmp/samp_sdk/samp03/pawno/include \
-            -i../pawno/include \
-            -i../includes \
-            -oLifeCity.amx
+            -ipawno/include \
+            -iincludes \
+            -ogamemodes/LifeCity.amx
 
       - name: Publier LifeCity.amx en telechargement
         uses: actions/upload-artifact@v4
