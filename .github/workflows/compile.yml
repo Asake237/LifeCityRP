@@ -13,28 +13,36 @@ jobs:
       - name: Recuperer le code du depot
         uses: actions/checkout@v4
 
-      - name: Installer bibliotheques 32-bit pour pawncc
+      - name: Installer bibliotheques 32-bit et outils
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update -y
-          sudo apt-get install -y curl tar libc6:i386 libstdc++6:i386
+          sudo apt-get install -y curl tar unzip libc6:i386 libstdc++6:i386
 
-      - name: Telecharger le compilateur et includes SA-MP
+      - name: Installer pawncc et les includes SA-MP
         run: |
-          mkdir -p /tmp/samp_sdk
-          cd /tmp/samp_sdk
-          curl -fsSL --retry 3 "https://files.sa-mp.com/samp037svr_R2-1.tar.gz" -o samp037svr.tar.gz \
-            || curl -fsSL --retry 3 "https://github.com/AmyrAhmady/samp-server-0.3.7-R2-1-linux/raw/master/samp037svr_R2-1.tar.gz" -o samp037svr.tar.gz \
-            || curl -fsSL --retry 3 "https://assets.open.mp/samp-server/samp037svr_R2-1.tar.gz" -o samp037svr.tar.gz
-          ls -lh samp037svr.tar.gz
-          tar -xzf samp037svr.tar.gz
-          chmod +x /tmp/samp_sdk/samp03/pawno/pawncc
+          mkdir -p /tmp/pawn_sdk/include
+          cd /tmp/pawn_sdk
+
+          PAWN_URL=$(curl -fsSL "https://api.github.com/repos/compuphase/pawn/releases/latest" | grep -oE '"browser_download_url": *"[^"]*linux[^"]*"' | head -n 1 | cut -d'"' -f4)
+          test -n "$PAWN_URL"
+          curl -fsSL --retry 3 "$PAWN_URL" -o pawn_linux.tar.gz
+          tar -xzf pawn_linux.tar.gz
+
+          PAWNCC_BIN=$(find /tmp/pawn_sdk -type f -name "pawncc" | head -n 1)
+          test -n "$PAWNCC_BIN"
+          chmod +x "$PAWNCC_BIN"
+          echo "PAWNCC_BIN=$PAWNCC_BIN" >> "$GITHUB_ENV"
+
+          curl -fsSL --retry 3 "https://github.com/pawn-lang/samp-stdlib/archive/refs/heads/master.zip" -o samp-stdlib.zip
+          unzip -q samp-stdlib.zip
+          cp -r samp-stdlib-master/* /tmp/pawn_sdk/include/
 
       - name: Compiler LifeCity.pwn en LifeCity.amx
         run: |
           ls -la gamemodes/
-          /tmp/samp_sdk/samp03/pawno/pawncc gamemodes/LifeCity.pwn \
-            -i/tmp/samp_sdk/samp03/pawno/include \
+          "$PAWNCC_BIN" gamemodes/LifeCity.pwn \
+            -i/tmp/pawn_sdk/include \
             -ipawno/include \
             -iincludes \
             -ogamemodes/LifeCity.amx
