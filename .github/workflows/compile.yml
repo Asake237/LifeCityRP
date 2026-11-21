@@ -1,0 +1,38 @@
+name: Compiler LifeCity RP
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Recuperer le code du depot
+        uses: actions/checkout@v4
+
+      - name: Telecharger le compilateur et includes SA-MP
+        run: |
+          mkdir -p /tmp/samp_sdk
+          cd /tmp/samp_sdk
+          wget -q https://files.sa-mp.com/samp037svr_R2-1.tar.gz
+          tar -xzf samp037svr_R2-1.tar.gz
+          chmod +x /tmp/samp_sdk/samp03/pawno/pawncc
+
+      - name: Compiler LifeCity.pwn en LifeCity.amx
+        run: |
+          cd gamemodes
+          /tmp/samp_sdk/samp03/pawno/pawncc LifeCity.pwn \
+            -i/tmp/samp_sdk/samp03/pawno/include \
+            -i../pawno/include \
+            -i../includes \
+            -oLifeCity.amx
+
+      - name: Publier LifeCity.amx en telechargement
+        uses: actions/upload-artifact@v4
+        with:
+          name: LifeCity-AMX
+          path: gamemodes/LifeCity.amx
+          
