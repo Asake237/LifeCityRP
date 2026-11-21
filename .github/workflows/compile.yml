@@ -13,35 +13,28 @@ jobs:
       - name: Recuperer le code du depot
         uses: actions/checkout@v4
 
-      - name: Installer bibliotheques 32-bit et outils
+      - name: Installer les outils de compilation
         run: |
-          sudo dpkg --add-architecture i386
           sudo apt-get update -y
-          sudo apt-get install -y curl tar unzip libc6:i386 libstdc++6:i386
+          sudo apt-get install -y build-essential curl unzip git
 
-      - name: Installer pawncc et les includes SA-MP
+      - name: Compiler pawncc et recuperer les includes SA-MP
         run: |
-          mkdir -p /tmp/pawn_sdk/include
+          mkdir -p /tmp/pawn_build /tmp/pawn_sdk/include
+          git clone --depth 1 https://github.com/compuphase/pawn.git /tmp/pawn_build/pawn
+          cd /tmp/pawn_build/pawn/source/compiler
+          make -j2
+          cp pawncc /tmp/pawn_sdk/pawncc
+          chmod +x /tmp/pawn_sdk/pawncc
+
           cd /tmp/pawn_sdk
-
-          PAWN_URL=$(curl -fsSL "https://api.github.com/repos/compuphase/pawn/releases/latest" | grep -oE '"browser_download_url": *"[^"]*linux[^"]*"' | head -n 1 | cut -d'"' -f4)
-          test -n "$PAWN_URL"
-          curl -fsSL --retry 3 "$PAWN_URL" -o pawn_linux.tar.gz
-          tar -xzf pawn_linux.tar.gz
-
-          PAWNCC_BIN=$(find /tmp/pawn_sdk -type f -name "pawncc" | head -n 1)
-          test -n "$PAWNCC_BIN"
-          chmod +x "$PAWNCC_BIN"
-          echo "PAWNCC_BIN=$PAWNCC_BIN" >> "$GITHUB_ENV"
-
-          curl -fsSL --retry 3 "https://github.com/pawn-lang/samp-stdlib/archive/refs/heads/master.zip" -o samp-stdlib.zip
+          curl -fsSL --retry 3 -H "User-Agent: Mozilla/5.0" "https://github.com/pawn-lang/samp-stdlib/archive/refs/heads/master.zip" -o samp-stdlib.zip
           unzip -q samp-stdlib.zip
           cp -r samp-stdlib-master/* /tmp/pawn_sdk/include/
 
       - name: Compiler LifeCity.pwn en LifeCity.amx
         run: |
-          ls -la gamemodes/
-          "$PAWNCC_BIN" gamemodes/LifeCity.pwn \
+          /tmp/pawn_sdk/pawncc gamemodes/LifeCity.pwn \
             -i/tmp/pawn_sdk/include \
             -ipawno/include \
             -iincludes \
