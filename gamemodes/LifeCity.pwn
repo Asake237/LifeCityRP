@@ -22,6 +22,61 @@ new g_TempsInitial;
 forward SauvegarderCompte(playerid);
 forward ChargerCompte(playerid, const password[]);
 
+stock est_egal(const a[], const b[])
+{
+    new i = 0;
+    while (a[i] != '\0' && b[i] != '\0')
+    {
+        new ca = a[i];
+        new cb = b[i];
+        if (ca >= 'A' && ca <= 'Z') ca += 32;
+        if (cb >= 'A' && cb <= 'Z') cb += 32;
+        if (ca != cb) return 0;
+        i++;
+    }
+    return (a[i] == '\0' && b[i] == '\0') ? 1 : 0;
+}
+
+stock commence_par(const chaine[], const prefixe[])
+{
+    new i = 0;
+    while (prefixe[i] != '\0')
+    {
+        new cc = chaine[i];
+        new cp = prefixe[i];
+        if (cc == '\0') return 0;
+        if (cc >= 'A' && cc <= 'Z') cc += 32;
+        if (cp >= 'A' && cp <= 'Z') cp += 32;
+        if (cc != cp) return 0;
+        i++;
+    }
+    return 1;
+}
+
+stock strip_newline(str[])
+{
+    new len = strlen(str);
+    while (len > 0 && (str[len - 1] == '\r' || str[len - 1] == '\n'))
+    {
+        str[len - 1] = '\0';
+        len--;
+    }
+}
+
+stock sscanf_simple(const str[], &arg1, &arg2)
+{
+    new pos = 0;
+    while (str[pos] == ' ') pos++;
+    if (str[pos] == '\0') return 1;
+    arg1 = strval(str[pos]);
+
+    while (str[pos] != '\0' && str[pos] != ' ') pos++;
+    while (str[pos] == ' ') pos++;
+    if (str[pos] == '\0') return 1;
+    arg2 = strval(str[pos]);
+    return 0;
+}
+
 main()
 {
     print("\n--------------------------------------------------");
@@ -39,11 +94,10 @@ public OnGameModeInit()
     SetWeather(1);
     g_TempsInitial = gettime();
 
-    // Quelques vehicules civils de depart a Pershing Square (LS)
-    AddStaticVehicleEx(411, 1488.0, -1732.0, 13.4, 90.0, 1, 1, 600); // Infernus
-    AddStaticVehicleEx(560, 1488.0, -1727.0, 13.4, 90.0, 3, 3, 600); // Sultan
-    AddStaticVehicleEx(462, 1488.0, -1722.0, 13.4, 90.0, 6, 6, 600); // Faggio
-    AddStaticVehicleEx(462, 1488.0, -1717.0, 13.4, 90.0, 6, 6, 600); // Faggio
+    AddStaticVehicleEx(411, 1488.0, -1732.0, 13.4, 90.0, 1, 1, 600);
+    AddStaticVehicleEx(560, 1488.0, -1727.0, 13.4, 90.0, 3, 3, 600);
+    AddStaticVehicleEx(462, 1488.0, -1722.0, 13.4, 90.0, 6, 6, 600);
+    AddStaticVehicleEx(462, 1488.0, -1717.0, 13.4, 90.0, 6, 6, 600);
     return 1;
 }
 
@@ -202,7 +256,7 @@ public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
 
 public OnPlayerCommandText(playerid, cmdtext[])
 {
-    if (!strcmp(cmdtext, "/aide", true))
+    if (est_egal(cmdtext, "/aide"))
     {
         SendClientMessage(playerid, COLOR_INFO, "=== Commandes Life City RP ===");
         SendClientMessage(playerid, COLOR_INFO, "/aide - /stats - /donnerargent [id] [montant]");
@@ -213,7 +267,7 @@ public OnPlayerCommandText(playerid, cmdtext[])
         return 1;
     }
 
-    if (!strcmp(cmdtext, "/stats", true))
+    if (est_egal(cmdtext, "/stats"))
     {
         new nom[MAX_PLAYER_NAME], ligne[128], uptime = gettime() - g_TempsInitial;
         GetPlayerName(playerid, nom, sizeof(nom));
@@ -226,7 +280,7 @@ public OnPlayerCommandText(playerid, cmdtext[])
         return 1;
     }
 
-    if (!strncmp(cmdtext, "/donnerargent ", 14, true))
+    if (commence_par(cmdtext, "/donnerargent "))
     {
         new targetid, montant;
         if (sscanf_simple(cmdtext[14], targetid, montant))
@@ -269,7 +323,7 @@ public OnPlayerCommandText(playerid, cmdtext[])
         return 1;
     }
 
-    if (!strncmp(cmdtext, "/veh ", 5, true))
+    if (commence_par(cmdtext, "/veh "))
     {
         if (PlayerInfo[playerid][pAdmin] < 1)
         {
@@ -291,7 +345,7 @@ public OnPlayerCommandText(playerid, cmdtext[])
         return 1;
     }
 
-    if (!strcmp(cmdtext, "/reparer", true))
+    if (est_egal(cmdtext, "/reparer"))
     {
         if (PlayerInfo[playerid][pAdmin] < 1)
         {
@@ -309,7 +363,7 @@ public OnPlayerCommandText(playerid, cmdtext[])
         return 1;
     }
 
-    if (!strncmp(cmdtext, "/meteo ", 7, true))
+    if (commence_par(cmdtext, "/meteo "))
     {
         if (PlayerInfo[playerid][pAdmin] < 1)
         {
@@ -322,7 +376,7 @@ public OnPlayerCommandText(playerid, cmdtext[])
         return 1;
     }
 
-    if (!strncmp(cmdtext, "/heure ", 7, true))
+    if (commence_par(cmdtext, "/heure "))
     {
         if (PlayerInfo[playerid][pAdmin] < 1)
         {
@@ -342,20 +396,6 @@ public OnPlayerCommandText(playerid, cmdtext[])
     return 0;
 }
 
-stock sscanf_simple(const str[], &arg1, &arg2)
-{
-    new pos = 0;
-    while (str[pos] == ' ') pos++;
-    if (str[pos] == '\0') return 1;
-    arg1 = strval(str[pos]);
-
-    while (str[pos] != '\0' && str[pos] != ' ') pos++;
-    while (str[pos] == ' ') pos++;
-    if (str[pos] == '\0') return 1;
-    arg2 = strval(str[pos]);
-    return 0;
-}
-
 public SauvegarderCompte(playerid)
 {
     new nom[MAX_PLAYER_NAME], chemin[128], mdp[64] = "";
@@ -368,7 +408,7 @@ public SauvegarderCompte(playerid)
         new ligne[128];
         while (fread(lecture, ligne))
         {
-            if (!strncmp(ligne, "Password=", 9))
+            if (commence_par(ligne, "Password="))
             {
                 strmid(mdp, ligne, 9, strlen(ligne), sizeof(mdp));
                 strip_newline(mdp);
@@ -402,16 +442,16 @@ public ChargerCompte(playerid, const password[])
     new ligne[128], mdpFichier[64] = "", argentFichier = 2500, adminFichier = 0;
     while (fread(fichier, ligne))
     {
-        if (!strncmp(ligne, "Password=", 9))
+        if (commence_par(ligne, "Password="))
         {
             strmid(mdpFichier, ligne, 9, strlen(ligne), sizeof(mdpFichier));
             strip_newline(mdpFichier);
         }
-        else if (!strncmp(ligne, "Money=", 6))
+        else if (commence_par(ligne, "Money="))
         {
             argentFichier = strval(ligne[6]);
         }
-        else if (!strncmp(ligne, "Admin=", 6))
+        else if (commence_par(ligne, "Admin="))
         {
             adminFichier = strval(ligne[6]);
         }
@@ -426,14 +466,4 @@ public ChargerCompte(playerid, const password[])
     PlayerInfo[playerid][pArgent] = argentFichier;
     PlayerInfo[playerid][pAdmin] = adminFichier;
     return 1;
-}
-
-stock strip_newline(str[])
-{
-    new len = strlen(str);
-    while (len > 0 && (str[len - 1] == '\r' || str[len - 1] == '\n'))
-    {
-        str[len - 1] = '\0';
-        len--;
-    }
 }
